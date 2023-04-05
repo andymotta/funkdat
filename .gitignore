@@ -1,0 +1,22 @@
+# venv environment
+venv/
+funkdat/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Local development settings
+.env
+
+# IDE settings
+.idea/
+
+# Miscellaneous
+*.log
