@@ -67,7 +67,10 @@ def walk_and_find_function(repo_path: str, function_name: str, filename: Optiona
 
     return None, None
 
-def find_related(repo_path: str, file_path: str, function_name: str) -> List[Tuple[str, ast.AST]]:
+def find_related(repo_path: str, file_path: str, function_name: str, recursion_level: int, current_level: int = 1, visited: Optional[Set[str]] = None) -> List[Tuple[str, ast.AST]]:
+    if visited is None:
+        visited = set()
+
     with open(file_path, "r") as file:
         content = file.read()
         tree = ast.parse(content)
@@ -97,7 +100,17 @@ def find_related(repo_path: str, file_path: str, function_name: str) -> List[Tup
                     if not related:
                         break
 
+        # Recursively find related code for the newly found related nodes if the recursion level is not exhausted
+        if recursion_level == -1 or current_level < recursion_level:
+            new_related_nodes = []
+            for node_file_path, node in related_nodes:
+                if node.name not in visited:
+                    visited.add(node.name)
+                    new_related_nodes.extend(find_related(repo_path, node_file_path, node.name, recursion_level, current_level + 1, visited))
+            related_nodes.extend(new_related_nodes)
+
     return related_nodes
+
 
 def main():
     parser = argparse.ArgumentParser(description="Find function and related code in a repo")
@@ -105,6 +118,7 @@ def main():
     parser.add_argument("--function", required=True, help="Function name to find")
     parser.add_argument("--filename", help="Optional filename to start the search")
     parser.add_argument("--debug", action='store_true', help="Enable debug mode to show extra output")
+    parser.add_argument("--recursion-level", type=int, default=-1, help="Level of recursion for finding related code")
 
     args = parser.parse_args()
 
@@ -112,6 +126,7 @@ def main():
     function_name = args.function
     filename = args.filename
     debug = args.debug
+    recursion_level = args.recursion_level
 
     if filename is not None:
         filename = os.path.join(repo_path, filename)
@@ -124,7 +139,7 @@ def main():
 
     print(f"Function '{function_name}' found in file: {file_path}")
 
-    related_nodes = find_related(repo_path, file_path, function_name)
+    related_nodes = find_related(repo_path, file_path, function_name, recursion_level)
 
     output_file = f"{function_name}_output.py"
     with open(output_file, 'w') as f:
